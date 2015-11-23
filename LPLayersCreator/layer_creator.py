@@ -20,10 +20,11 @@
  *                                                                         *
  ***************************************************************************/
 """
-from PyQt4.QtCore import QSettings, QTranslator, qVersion, QCoreApplication
+from PyQt4.QtCore import *
 from PyQt4.QtGui import QAction, QIcon
 # Initialize Qt resources from file resources.py
 import resources
+from qgis.core import *
 # Import the code for the dialog
 from layer_creator_dialog import LPLayersCreatorDialog
 import os.path
@@ -189,4 +190,30 @@ class LPLayersCreator:
         if result:
             # Do something useful here - delete the line containing pass and
             # substitute with your code.
-            pass
+            # create layer
+            vl = QgsVectorLayer("Point", "temporary_points", "memory")
+            pr = vl.dataProvider()
+
+            # add fields
+            pr.addAttributes([QgsField("name", QVariant.String),
+                                QgsField("age",  QVariant.Int),
+                                QgsField("size", QVariant.Double)])
+            vl.updateFields() # tell the vector layer to fetch changes from the provider
+
+            # add a feature
+            fet = QgsFeature()
+            fet.setGeometry(QgsGeometry.fromPoint(QgsPoint(10,10)))
+            fet.setAttributes(["Johny", 2, 0.3])
+            pr.addFeatures([fet])
+            
+            # update layer's extent when new features have been added
+            # because change of extent in provider is not propagated to the layer
+            vl.updateExtents()
+            
+            plugin_path = os.path.dirname(os.path.realpath(__file__))
+            
+            vl.loadNamedStyle(plugin_path + "/styles/L-P_spot_height.qml")
+
+            
+            QgsMapLayerRegistry.instance().addMapLayer(vl)
+        
